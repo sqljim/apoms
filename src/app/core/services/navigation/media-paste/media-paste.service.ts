@@ -4,7 +4,7 @@ import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { LocalMediaItem, MediaItem, MediaItemReturnObject } from '../../../models/media';
 import { AngularFireStorage, AngularFireUploadTask } from '@angular/fire/storage';
 import { map } from 'rxjs/operators';
-import { Observable, from, BehaviorSubject, Observer, of} from 'rxjs';
+import { Observable, from, BehaviorSubject, of} from 'rxjs';
 import { AngularFireAuth } from '@angular/fire/auth';
 import { environment } from 'src/environments/environment';
 import { AuthService } from 'src/app/auth/auth.service';
@@ -43,6 +43,7 @@ export class MediaPasteService {
     private fireAuth: AngularFireAuth,
     private onlineStatus: OnlineStatusService,
     private snackbarService:SnackbarService,
+    public datePipe:DatePipe,
     protected storageService: StorageService) { }
 
     user!: firebase.default.auth.UserCredential;
@@ -52,7 +53,7 @@ export class MediaPasteService {
     
 
 
-  handleUpload(file: File, patientId: number): MediaItemReturnObject {
+  handleUpload(file: File, patientId: number, offlineUploadDate?:string): MediaItemReturnObject {
     
     if(!file.type.match(/image.*|video.*/)){
       return {
@@ -69,7 +70,12 @@ export class MediaPasteService {
         mediaItemId: new BehaviorSubject<number | undefined>(undefined),
         result: 'success'
     };
+    if(offlineUploadDate){
 
+      newMediaItem.datetime = offlineUploadDate;
+
+    }
+    
 
     this.checkAuthenticated().then(async () => {
 
@@ -85,7 +91,6 @@ export class MediaPasteService {
         const resizedImage = await this.cropedImage(file);
         
         if(!this.duplicateImage(file.name, patientId) || file.name ==='uploadFile'){
-
        
           newMediaItem.widthPX = resizedImage.width;
           newMediaItem.heightPX = resizedImage.height;
@@ -93,7 +98,6 @@ export class MediaPasteService {
           const uploadResult = this.uploadFile(uploadLocation, resizedImage.image);
 
           newMediaItem.uploadProgress$ = this.getUploadProgress(uploadResult);
-
 
           // TODO Fix the height and width of video so it doesn't overflow the containing div in the template
 
@@ -160,75 +164,81 @@ export class MediaPasteService {
 
 
     }).catch(async error => {
+
+      /**
+       * Offline Mode
+       */
+
+      if(!this.onlineStatus.connectionChanged.value){
+
+        this.snackbarService.errorSnackBar('Case saved to local storage', 'OK');
+
+        const resizedImage = await this.cropedImage(file);
+        this.onlineStatus.updateOnlineStatusAfterUnsuccessfulHTTPRequest();
+
         /**
-         * Offline Mode
+         * Patient already exist in local storage
+         * add more images to patient
          */
-        if(!this.onlineStatus.connectionChanged.value){
 
-          this.snackbarService.errorSnackBar('Case saved to local storage', 'OK');
+        if(this.imageExsistInLocalStorage(patientId))
+        {
 
-          const resizedImage = await this.cropedImage(file);
-          this.onlineStatus.updateOnlineStatusAfterUnsuccessfulHTTPRequest();
+          let localMediaItems:LocalMediaItem[] = this.storageService.getItemArray('MEDIA').map(mediaItem =>
+            JSON.parse(JSON.parse(mediaItem.value as string))[0]
+          );
 
-         /**
-          * Patient already exist in local storage
-          * add more images to patient
-          */
-          if(this.imageExsistInLocalStorage(patientId))
-          {
-
-            let localMediaItems:LocalMediaItem[] = this.storageService.getItemArray('MEDIA').map(mediaItem =>
-              JSON.parse(JSON.parse(mediaItem.value as string))[0]
-            );
-
-            
-            localMediaItems = localMediaItems.map((mediaItem:LocalMediaItem) => {
-              if(mediaItem.patientId === patientId){
-                mediaItem.media.push(resizedImage.dataUrl);
-              }
-              return mediaItem;
-            });
-            
-            this.saveToLocalDatabase('MEDIA', JSON.stringify(localMediaItems));
-            
-            
-          }
-          else{
-            /**
-             * New patient entry
-             */
-
-            /** 
-             * Local Storage media object exists
-             * fetch previous media storage and push new patient entry
-             * convert to string for storage
-             */
-         
-            if(this.storageService.getItemArray('MEDIA').length >= 0){
-              
-              const localMedia = this.getParseMediaObject();
-
-              localMedia.push({headerType:'POST',patientId, media:[resizedImage.dataUrl]});
-
-              this.saveToLocalDatabase(
-                'MEDIA', JSON.stringify(localMedia)
-              );
-
-            }
-
-            this.onlineStatus.connectionChanged.next(false);
-          }
           
-          (returnObject.mediaItem as MediaItem).uploadProgress$ = of(100);
+          localMediaItems = localMediaItems.map((mediaItem:LocalMediaItem) => {
+            if(mediaItem.patientId === patientId){
 
-          returnObject.mediaItemId.next(1);
+             
+              mediaItem.media.push({date:  this.datePipe.transform(new Date(),'yyyy-MM-ddThh:mm'), imageBase64:resizedImage.dataUrl});
+            }
+            return mediaItem;
+          });
+          
+          this.saveToLocalDatabase('MEDIA', JSON.stringify(localMediaItems));
+          
           
         }
         else{
+          /**
+           * New patient entry
+           */
 
-          return console.log(error);
+          /** 
+           * Local Storage media object exists
+           * fetch previous media storage and push new patient entry
+           * convert to string for storage
+           */
+        
+          if(this.storageService.getItemArray('MEDIA').length >= 0){
+            
+            const localMedia = this.getParseMediaObject();
 
+            localMedia.push({headerType:'POST',patientId, media:[{date: this.datePipe.transform(new Date(),'yyyy-MM-ddThh:mm'), imageBase64:resizedImage.dataUrl}]});
+
+            this.saveToLocalDatabase(
+              'MEDIA', JSON.stringify(localMedia)
+            );
+
+          }
+
+          this.onlineStatus.connectionChanged.next(false);
         }
+        
+        (returnObject.mediaItem as MediaItem).uploadProgress$ = of(100);
+
+        returnObject.mediaItemId.next(1);
+        console.log(this.getMediaItemsFromLocalStoargeByPatientId(patientId));
+      }
+      else{
+
+        return console.log(error);
+
+      }
+
     });
 
     return returnObject;
