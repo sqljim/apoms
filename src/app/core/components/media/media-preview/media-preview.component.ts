@@ -255,7 +255,8 @@ export class MediaPreviewComponent implements OnInit, OnDestroy {
 
   private insertPatientTags(value: string) {
 
-    const imageTags = this.recordForm.get('imageTags')?.value;
+    const imageTags = this.recordForm.get('imageTags')?.value ? this.recordForm.get('imageTags')?.value : [];
+    console.log(imageTags);
     imageTags.push(value);
 
     const mediaItem = this.getUpdatedPatientMediaItem();
