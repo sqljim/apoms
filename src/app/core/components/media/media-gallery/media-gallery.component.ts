@@ -220,30 +220,30 @@ export class MediaGalleryComponent implements OnInit, OnDestroy, AfterViewInit {
 
   initMedaiaGalleryProperties(mediaItems:MediaItem[]) {
     if(!mediaItems){
-        this.galleryImages.push({
-          thumbnail:'../../../../../assets/images/image_placeholder.png',
-          full:'../../../../../assets/images/image_placeholder.png',
-          type: 'image',
-        });
+      this.galleryImages.push({
+        thumbnail:'../../../../../assets/images/image_placeholder.png',
+        full:'../../../../../assets/images/image_placeholder.png',
+        type: 'image',
+      });
 
-        return;
+      return;
     }
 
     this.mediaPatientItems = mediaItems;
 
     this.galleryImages = this.mediaPatientItems.map(item=>{
-
-        return {
-            thumbnail:item.remoteURL,
-            full:item.remoteURL,
-            type: item.mediaType.includes('video') ? 'video' : 'image',
-            time: this.datepipe.transform(item.datetime, 'HH:mm'),
-            date: item.datetime.toString().replace('T',' ').slice(0,10),
-            tags: item.tags,
-            patientMediaItemId: item.patientMediaItemId,
-            width: item.widthPX,
-            height: item.heightPX
-        };
+      
+      return {
+        thumbnail:item.remoteURL,
+        full:item.remoteURL,
+        type: item.mediaType.includes('video') ? 'video' : 'image',
+        time: this.datepipe.transform(item.datetime, 'HH:mm'),
+        date: this.datepipe.transform( new Date(item.datetime) , 'yyyy-MM-dd'),
+        tags: item.tags,
+        patientMediaItemId: item.patientMediaItemId,
+        width: item.widthPX,
+        height: item.heightPX
+      };
 
     });
 

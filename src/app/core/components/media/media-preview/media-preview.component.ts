@@ -110,8 +110,10 @@ export class MediaPreviewComponent implements OnInit, OnDestroy {
      
 
       if(this.imageData){
+  
         this.recordForm.get('imageDate')?.setValue(this.datePipe.transform(new Date(`${this.imageData.date}T${this.imageData.time}` as string),'yyyy-MM-ddThh:mm')),
         this.recordForm.get('imageTags')?.setValue(this.data.mediaData.tags?.map((tag:any) => tag.tag));
+        
       }
 
      this.checkHeight();
@@ -256,9 +258,12 @@ export class MediaPreviewComponent implements OnInit, OnDestroy {
   private insertPatientTags(value: string) {
 
     const imageTags = this.recordForm.get('imageTags')?.value ? this.recordForm.get('imageTags')?.value : [];
-    console.log(imageTags);
+
     imageTags.push(value);
 
+    if(imageTags.lnegth ===0){
+      this.recordForm.get('imageTags')?.setValue(imageTags);
+    }
     const mediaItem = this.getUpdatedPatientMediaItem();
 
     this.savePatientMediaItem(mediaItem);
