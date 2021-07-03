@@ -4,7 +4,7 @@ import { DomSanitizer, SafeUrl } from '@angular/platform-browser';
 import { LocalMediaItem, MediaItem, MediaItemReturnObject } from '../../../models/media';
 import { AngularFireStorage, AngularFireUploadTask } from '@angular/fire/storage';
 import { map } from 'rxjs/operators';
-import { Observable, from, BehaviorSubject, of} from 'rxjs';
+import { Observable, from, BehaviorSubject, of, ReplaySubject } from 'rxjs';
 import { AngularFireAuth } from '@angular/fire/auth';
 import { environment } from 'src/environments/environment';
 import { AuthService } from 'src/app/auth/auth.service';
@@ -50,7 +50,43 @@ export class MediaPasteService {
     mediaItemId$!: BehaviorSubject<number>;
 
 
-    
+  async handleImageUpload(file:File){
+    const resultObject = new ReplaySubject();
+    this.checkAuthenticated().then(() => {
+      const uploadLocation = this.getFileUploadLocation(file.name, this.datepipe.transform(new Date(), 'yyyyMMdd_hhmmss') as string);
+
+      const options: IResizeImageOptions = {
+        maxSize: 5000,
+        file
+      };
+      
+      
+      if((file.type as string).includes('image')){
+
+        this.resizeImage(options).then(resizedImage => {
+          const uploadResult = this.uploadFile(uploadLocation, resizedImage.image);
+          uploadResult.then(result => {
+            console.log(result);
+            if(result.state === 'success'){
+              
+              result.ref.getDownloadURL().then(url => {
+
+                resultObject.next({
+                  success:1,
+                  remoteURL:url
+                });
+
+              });
+              
+            }
+          });
+        });        
+
+      }
+    });
+    return resultObject;
+  }  
+
 
 
   handleUpload(file: File, patientId: number, offlineUploadDate?:string): MediaItemReturnObject {
@@ -70,12 +106,12 @@ export class MediaPasteService {
         mediaItemId: new BehaviorSubject<number | undefined>(undefined),
         result: 'success'
     };
+
     if(offlineUploadDate){
 
       newMediaItem.datetime = offlineUploadDate;
-
+      
     }
-    
 
     this.checkAuthenticated().then(async () => {
 
@@ -86,54 +122,38 @@ export class MediaPasteService {
 
       const uploadLocation = this.getFileUploadLocation(file.name, timeString || '');
 
-     
-      if(newMediaItem.mediaType.indexOf('image') > -1){
+      const options: IResizeImageOptions = {
+        maxSize: 5000,
+        file
+      };
 
-        const resizedImage = await this.cropedImage(file);
-        
-        if(!this.duplicateImage(file.name, patientId) || file.name ==='uploadFile'){
-       
-          newMediaItem.widthPX = resizedImage.width;
-          newMediaItem.heightPX = resizedImage.height;
-      
-          const uploadResult = this.uploadFile(uploadLocation, resizedImage.image);
+      if(newMediaItem.mediaType === 'image'){
 
-          newMediaItem.uploadProgress$ = this.getUploadProgress(uploadResult);
+        const resizedImage = await this.resizeImage(options);
 
-          // TODO Fix the height and width of video so it doesn't overflow the containing div in the template
+        newMediaItem.widthPX = resizedImage.width;
+        newMediaItem.heightPX = resizedImage.height;
 
-          uploadResult.then((result) => {
+        const uploadResult = this.uploadFile(uploadLocation, resizedImage.image);
 
-            result.ref.getDownloadURL().then((url:any) => {
+        newMediaItem.uploadProgress$ = this.getUploadProgress(uploadResult);
 
-              newMediaItem.remoteURL = url;
+        uploadResult.then((result) => {
 
-              newMediaItem.datetime = this.datePipe.transform(new Date(),'yyyy-MM-ddThh:mm') as string,
-              
+          result.ref.getDownloadURL().then(url => {
 
-              this.patientService.savePatientMedia(newMediaItem).then((mediaItems:any) => {
-                
-                this.onlineStatus.updateOnlineStatusAfterSuccessfulHTTPRequest();
+            newMediaItem.remoteURL = url;
 
-                if(mediaItems.success) {
 
-                  returnObject.mediaItemId.next(mediaItems.mediaItemId);
-
-                }
-                
-              });
+            newMediaItem.mediaItemId.subscribe(id => {
+              returnObject.mediaItemId.next(id);
 
             });
 
-          }).catch(async error => {
-            console.log(error);
           });
-        }
-        else{
 
-          this.snackbarService.errorSnackBar('Duplicate Image upload are not allowed', 'OK');
+        });
 
-        }
       }
       else{
 
@@ -141,7 +161,6 @@ export class MediaPasteService {
 
         newMediaItem.uploadProgress$ = this.getUploadProgress(uploadResult);
 
-        
         // TODO Fix the height and width of video so it doesn't overflow the containing div in the template
 
         uploadResult.then((result) => {
@@ -155,9 +174,8 @@ export class MediaPasteService {
             newMediaItem.mediaItemId = savetoDB.pipe(map(response => response.mediaItemId));
 
             newMediaItem.mediaItemId.subscribe(id => {
-
               returnObject.mediaItemId.next(id);
-              
+
             });
 
           });
@@ -166,103 +184,11 @@ export class MediaPasteService {
 
       }
 
-
-    }).catch(async error => {
-
-      /**
-       * Offline Mode
-       */
-
-      if(!this.onlineStatus.connectionChanged.value){
-
-        this.snackbarService.errorSnackBar('Case saved to local storage', 'OK');
-
-        const resizedImage = await this.cropedImage(file);
-        this.onlineStatus.updateOnlineStatusAfterUnsuccessfulHTTPRequest();
-
-        /**
-         * Patient already exist in local storage
-         * add more images to patient
-         */
-
-        if(this.imageExsistInLocalStorage(patientId))
-        {
-
-          let localMediaItems:LocalMediaItem[] = this.storageService.getItemArray('MEDIA').map(mediaItem =>
-            JSON.parse(JSON.parse(mediaItem.value as string))[0]
-          );
-
-          
-          localMediaItems = localMediaItems.map((mediaItem:LocalMediaItem) => {
-            if(mediaItem.patientId === patientId){
-
-             
-              mediaItem.media.push({date:  this.datePipe.transform(new Date(),'yyyy-MM-ddThh:mm'), imageBase64:resizedImage.dataUrl});
-            }
-            return mediaItem;
-          });
-          
-          this.saveToLocalDatabase('MEDIA', JSON.stringify(localMediaItems));
-          
-          
-        }
-        else{
-          /**
-           * New patient entry
-           */
-
-          /** 
-           * Local Storage media object exists
-           * fetch previous media storage and push new patient entry
-           * convert to string for storage
-           */
-        
-          if(this.storageService.getItemArray('MEDIA').length >= 0){
-            
-            const localMedia = this.getParseMediaObject();
-
-            localMedia.push({headerType:'POST',patientId, media:[{date: this.datePipe.transform(new Date(),'yyyy-MM-ddThh:mm'), imageBase64:resizedImage.dataUrl}]});
-
-            this.saveToLocalDatabase(
-              'MEDIA', JSON.stringify(localMedia)
-            );
-
-          }
-
-          this.onlineStatus.connectionChanged.next(false);
-        }
-        
-        (returnObject.mediaItem as MediaItem).uploadProgress$ = of(100);
-
-        returnObject.mediaItemId.next(1);
-        
-      }
-      else{
-
-        return console.log(error);
-
-      }
-
-    });
+    }).catch(error =>
+      console.log(error)
+    );
 
     return returnObject;
-
-  }
-
-  private async cropedImage(file: File) {
-    const options: IResizeImageOptions = {
-      maxSize: 5000,
-      file
-    };
-
-    return await this.resizeImage(options);
-    
-  }
-
-  duplicateImage(filename:string,patientId:number){
-   let duplicate = false;
-   this.patientService.getPatientMediaItemsByPatientId(patientId)?.value.forEach(async mediaItem => duplicate = mediaItem.remoteURL.includes(filename));
-   return duplicate;
   }
 
   private async saveToLocalDatabase(key:any, body:any) {
@@ -395,14 +321,14 @@ export class MediaPasteService {
 
   getPastedImage(event: ClipboardEvent): File | undefined {
 
-    if (
-        event.clipboardData &&
-        event.clipboardData.files &&
-        event.clipboardData.files.length &&
-        isImageFile(event.clipboardData.files[0])
-    ) {
-        return event.clipboardData.files[0];
-    }
+      if (
+          event.clipboardData &&
+          event.clipboardData.files &&
+          event.clipboardData.files.length &&
+          isImageFile(event.clipboardData.files[0])
+      ) {
+          return event.clipboardData.files[0];
+      }
 
     return undefined;
   }

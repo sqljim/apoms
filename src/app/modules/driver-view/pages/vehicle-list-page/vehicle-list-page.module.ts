@@ -1,12 +1,13 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
-import { VehicleListPageRoutingModule } from './vehicle-list-page-routing.module';
+
 import { MaterialModule } from 'src/app/material-module';
-import { VehileListPageComponent } from './vehile-list-page.component';
+import { VehicleListPageComponent } from './vehicle-list-page.component';
+import { VehicleListPageRoutingModule } from './vehicle-list-page-routing.module';
 
 @NgModule({
-  declarations: [VehileListPageComponent],
+  declarations: [VehicleListPageComponent],
   imports: [
     CommonModule,
     VehicleListPageRoutingModule,
