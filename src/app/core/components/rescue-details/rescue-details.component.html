@@ -56,12 +56,35 @@
                     </mat-select>
                 </mat-form-field>
 
+            <mat-form-field>
+                <mat-label>Code</mat-label>
+                <mat-select #emergencyCode tabindex="14" [formControl]="code" [errorStateMatcher]="errorMatcher"
+                    [compareWith]="compareEmergencyCodes" (keydown)="selectEmergencyCode($event)">
 
-            </div>
+                    <!-- -->
+                    <mat-select-trigger *ngIf="code?.value?.EmergencyCodeId" >
 
+                        <mat-icon [ngClass]="{
+                            'dot-grey' : code?.value?.EmergencyCodeId == 4,
+                            'dot-red' : code?.value?.EmergencyCodeId == 1,
+                            'dot-green' : code?.value?.EmergencyCodeId == 2,
+                            'dot-yellow' : code?.value?.EmergencyCodeId == 3}"
+                            matSuffix>fiber_manual_record</mat-icon>
+                        {{code?.value?.EmergencyCode}}
+                    </mat-select-trigger>
 
+                    <mat-option *ngFor="let code of emergencyCodes$ | async" [value]="code">
 
-        </div>
+                        <mat-icon [ngClass]="{
+                                'dot-grey' : code.EmergencyCodeId == 4,
+                                'dot-red' : code.EmergencyCodeId == 1,
+                                'dot-green' : code.EmergencyCodeId == 2,
+                                'dot-yellow' : code.EmergencyCodeId == 3}" matSuffix>fiber_manual_record</mat-icon>
+                        {{code.EmergencyCode}}
+
+                    </mat-option>
+                </mat-select>
+            </mat-form-field>
 
 
     </div>
@@ -78,7 +101,7 @@
         </mat-form-field>
 
         <mat-form-field>
-            <input tabindex="16" #ambulanceArrivalTimeField formControlName="ambulanceArrivalTime" type="datetime-local"
+            <input tabindex="15" #ambulanceArrivalTimeField formControlName="ambulanceArrivalTime" type="datetime-local"
             name="ambulanceArrivalTime" [min]="currentCallDateTime" [max]="currentRescueTime"
             (focus)="setInitialTime($event)" (blur)="updateTimes()"
             placeholder="Ambulance arrival time" [errorStateMatcher]="errorMatcher" matInput>
@@ -93,7 +116,7 @@
         </mat-form-field>
 
         <mat-form-field>
-                    <input tabindex="10" formControlName="rescueTime" type="datetime-local" name="rescueTime"
+                    <input tabindex="16" formControlName="rescueTime" type="datetime-local" name="rescueTime"
                     [min]="currentCallDateTime" [max]="currentAdmissionTime"
                     (focus)="setInitialTime($event)" (blur)="updateTimes()" placeholder="Rescue time" [errorStateMatcher]="errorMatcher" #rescueTimeField matInput>
 
@@ -108,7 +131,7 @@
 
 
             <mat-form-field>
-                    <input tabindex="16" formControlName="admissionTime" name="admissionTime" type="datetime-local" [min]="currentRescueTime" [max]="currentTime" (focus)="setInitialTime($event)" (blur)="updateTimes()" placeholder="Admission time" [errorStateMatcher]="errorMatcher" matInput>
+                    <input tabindex="17" formControlName="admissionTime" name="admissionTime" type="datetime-local" [min]="currentRescueTime" [max]="currentTime" (focus)="setInitialTime($event)" (blur)="updateTimes()" placeholder="Admission time" [errorStateMatcher]="errorMatcher" matInput>
 
                     <mat-error *ngIf="admissionTime?.hasError('admissionBeforeCallDatetime')">
                         Admission before call!
