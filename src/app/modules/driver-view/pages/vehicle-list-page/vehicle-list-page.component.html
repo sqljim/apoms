@@ -150,6 +150,13 @@
           {{row.vehicleStatus}}
         </mat-cell>
       </ng-container>
+      <ng-container matColumnDef="vehicleImage">
+        <mat-header-cell *matHeaderCellDef> Image </mat-header-cell>
+        <mat-cell *matCellDef="let row">
+          <span class="mobile-label">Image:</span>
+          <img class='vehicleTableVechicleImage' (click)="openMediaPreviewDialog($event,row.vehicleImage)" src='{{row.vehicleImage}}' />
+        </mat-cell>
+      </ng-container>
 
       <mat-header-row *matHeaderRowDef="displayedColumns"></mat-header-row>
       <mat-row *matRowDef="let row; columns: displayedColumns;" (click)="selectRow(row)"></mat-row>

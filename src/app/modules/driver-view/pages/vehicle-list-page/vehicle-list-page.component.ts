@@ -1,3 +1,4 @@
+import { MatDialog } from '@angular/material/dialog';
 import { DatePipe } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup } from '@angular/forms';
@@ -9,6 +10,7 @@ import { DropdownService } from 'src/app/core/services/dropdown/dropdown.service
 import { MediaPasteService } from 'src/app/core/services/navigation/media-paste/media-paste.service';
 import { SnackbarService } from 'src/app/core/services/snackbar/snackbar.service';
 import { DriverViewService } from '../../services/driver-view.service';
+import { MediaPreviewComponent } from 'src/app/core/components/media/media-preview/media-preview.component';
 
 interface IResizeImageOptions {
   maxSize: number;
@@ -36,7 +38,8 @@ export class VehicleListPageComponent implements OnInit {
     'smallAnimalCapacity',
     'minRescuerCapacity',
     'maxRescuerCapacity',
-    'vehicleStatus'
+    'vehicleStatus',
+    'vehicleImage'
   ];
 
   dataSource!: MatTableDataSource<Vehicle[]> ;
@@ -65,7 +68,8 @@ export class VehicleListPageComponent implements OnInit {
               private fb: FormBuilder,
               private driverViewService: DriverViewService,
               private snackBar: SnackbarService,
-              private mediaPasteService:MediaPasteService) { }
+              private mediaPasteService:MediaPasteService,
+              public dialog: MatDialog) { }
 
   ngOnInit(): void {
     this.vehicleType$ = this.dropdown.getVehicleType();
@@ -78,27 +82,29 @@ export class VehicleListPageComponent implements OnInit {
       this.mediaPasteService.handleImageUpload(this.file).then(uploadResult => {
         uploadResult.subscribe((result:any) => {
           if(result.success === 1) {
+           
             vehicleForm.get('vehicleImage')?.setValue(result.remoteURL);
+            this.driverViewService.upsertVehicleListItem(vehicleForm.value).then(response=> {
+              if(response.success === -1) {
+                this.snackBar.errorSnackBar('Communication error see adim', 'Ok');
+              }
+              else {
+                if(response.success === 1) {
+      
+                  this.snackBar.successSnackBar('Saved Successfully', 'Ok');
+                  this.refreshVehicleTable();
+                 
+                }
+                else {
+                  this.snackBar.errorSnackBar('Duplicate entry', 'Ok');
+                }
+      
+              }
+            });
           }
         });
       });
-      this.driverViewService.upsertVehicleListItem(vehicleForm.value).then(response=> {
-        if(response.success === -1) {
-          this.snackBar.errorSnackBar('Communication error see adim', 'Ok');
-        }
-        else {
-          if(response.success === 1) {
-
-            this.snackBar.successSnackBar('Saved Successfully', 'Ok');
-            this.refreshVehicleTable();
-           
-          }
-          else {
-            this.snackBar.errorSnackBar('Duplicate entry', 'Ok');
-          }
-
-        }
-      });
+      
     }
 
   }
@@ -106,13 +112,11 @@ export class VehicleListPageComponent implements OnInit {
   refreshVehicleTable() {
     this.driverViewService.getVehicleListTableData().then((vehicleListTabledata)=> {
       this.dataSource = vehicleListTabledata;
-    })
+    });
   }
 
   selectRow(selectedVehicle: any) {
-
-    console.log(selectedVehicle);
-
+    this.imageSrc = selectedVehicle.vehicleImage;
     this.vehicleListForm.patchValue(selectedVehicle);
   }
 
@@ -161,6 +165,23 @@ export class VehicleListPageComponent implements OnInit {
     $event.preventDefault();
     this.vehicleListForm.reset();
     this.imageSrc = '';
+  }
+
+  openMediaPreviewDialog($event:Event,imgUrl:string){
+    $event.preventDefault();
+    const dialogRef = this.dialog.open(MediaPreviewComponent, {
+
+      minWidth: '53vw',
+      panelClass: 'media-preview-dialog',
+      data: {
+        image: {
+          full: imgUrl,
+          type:'image'
+        },
+        showDataPanel: false 
+      }
+
+    });
   }
 
 }

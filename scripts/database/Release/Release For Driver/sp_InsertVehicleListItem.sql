@@ -11,9 +11,9 @@ IN prm_VehicleTypeId INT,
 IN prm_VehicleImage VARCHAR(200),
 IN prm_LargeAnimalCapacity INT,
 IN prm_SmallAnimalCapacity INT,
+IN prm_VehicleStatusId INT,
 IN prm_MinRescuerCapacity INT,
-IN prm_MaxRescuerCapacity INT,
-IN prm_VehicleStatusId INT
+IN prm_MaxRescuerCapacity INT
                                             )
 BEGIN
 

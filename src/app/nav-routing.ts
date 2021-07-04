@@ -181,7 +181,7 @@ export class NavRouteService {
             this.permissionService.permissionTrueOrFalse(routeVal.data?.permissionId).then(val=> {
 
                 if(routeVal.data && val) {
-                    routeVal.data.componentPermissionLevel.next(val);
+                    routeVal.data.componentPermissionLevel?.next(val);
                 }
                 this.navRoutes.next(this.getNavRouteList() || []);
             });

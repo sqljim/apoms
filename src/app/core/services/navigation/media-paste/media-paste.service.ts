@@ -66,7 +66,7 @@ export class MediaPasteService {
         this.resizeImage(options).then(resizedImage => {
           const uploadResult = this.uploadFile(uploadLocation, resizedImage.image);
           uploadResult.then(result => {
-            console.log(result);
+            
             if(result.state === 'success'){
               
               result.ref.getDownloadURL().then(url => {

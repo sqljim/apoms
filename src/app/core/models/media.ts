@@ -47,9 +47,9 @@ import { Observable, BehaviorSubject } from 'rxjs';
   }
 
   export interface Image {
-    thumbnail: string;
+    thumbnail?: string;
     full: string;
-    type: string;
+    type?: string;
     time?: string | null;
     date?: string | null;
     tags?: any;

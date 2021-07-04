@@ -1,3 +1,5 @@
+
+
 ::ng-deep .media-preview-dialog .mat-dialog-container {
     padding: 0 !important;
     position:relative;
@@ -44,8 +46,8 @@
 }
 
 .mediaPreviewBackgroundImage{
-    background-size: contain;
-    min-width: 73%;
+
+    background-size: contain;  
     background-repeat: no-repeat;
     min-height: 70vh;
     background-position: center;
@@ -56,6 +58,9 @@
     border-top-left-radius: 0.5em;
     border-bottom-left-radius: 0.5em;
 }
+
+
+
 .imagePreviewSidePanel{
     box-shadow: -1px -1px 3px #FFFFFF, 1.5px 1.5px 2px rgba(174, 174, 192, 0.4);
     border-radius: 0.3rem ;

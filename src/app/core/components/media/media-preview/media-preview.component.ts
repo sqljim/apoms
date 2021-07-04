@@ -107,6 +107,7 @@ export class MediaPreviewComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
+
     this.innerWidth = window.innerWidth;
     this.innerHeight = window.innerHeight;
     this.recordForm = this.fb.group({
@@ -118,7 +119,7 @@ export class MediaPreviewComponent implements OnInit, OnDestroy {
     if(!this.data?.upload){
      
 
-      if(this.imageData){
+      if(this.imageData && this.imageData.date && this.imageData.time){
         this.recordForm.get('imageDate')?.setValue(this.datePipe.transform(new Date(`${this.imageData.date}T${this.imageData.time}` as string),'yyyy-MM-ddThh:mm')),
         this.recordForm.get('imageTags')?.setValue(this.data.mediaData.tags?.map((tag:any) => tag.tag));
       }
@@ -192,9 +193,6 @@ export class MediaPreviewComponent implements OnInit, OnDestroy {
       else if(mediaItem.mediaItem){
 
         mediaItem.mediaItem.updated = true;
-      }
-      else{
-       //  console.log('Upload media');
       }
   
     }

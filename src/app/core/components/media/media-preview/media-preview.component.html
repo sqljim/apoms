@@ -9,12 +9,15 @@
 </button>
 <div fxLayout="row" fxLayout.lt-sm="column" style="background: #F0F0F0; border-radius: 0.5em;">
     <div #imgElement 
+
+    [ngStyle]="{'min-width':(data.showDataPanel !== undefined && !data.showDataPanel)? '99.5%' : '73%' }"
     [style.backgroundImage]="'url('+ imageData?.full +')'" 
     class="mediaPreviewBackgroundImage"
+    
     [ngStyle.xs]="'min-height:'+ imageHeight+'vh'" 
     (swipeleft)="onSwipeLeft($event)"
     (swiperight)="onSwipeRight($event)"
-    *ngIf="imageData?.type?.includes('image') || data.upload"
+    *ngIf="imageData?.type?.includes('image') || imageData?.type?.includes('video') || data.upload"
    
     (click)="onImageClick($event)">
     
@@ -58,7 +61,7 @@
         Browser not supported
     </video>
     
-    <div style="padding: 0.5rem;" ngStyle.gt-xs="width: 100%;" [formGroup]="recordForm">
+    <div style="padding: 0.5rem;" ngStyle.gt-xs="width: 100%;" [formGroup]="recordForm" *ngIf="data.showDataPanel !== undefined ? data.showDataPanel : true">
         <div class="imagePreviewSidePanel" fxLayout.gt-xs="row" >
             <mat-form-field class="imageDate" appearance="fill" fxLayout="column">
                 <mat-label >Date</mat-label>

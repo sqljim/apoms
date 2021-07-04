@@ -118,7 +118,6 @@ export class StreetTreatRecordComponent implements OnInit {
 
     this.animalTypes$ = this.dropdown.getAnimalTypes();
 
-    console.log(this.inputStreetTreatCase);
     this.streetTreatServiceSubscription = this.streetTreatService.getStreetTreatCaseById(this.inputStreetTreatCase.streetTreatCaseId)
     .pipe(
       map(item => {

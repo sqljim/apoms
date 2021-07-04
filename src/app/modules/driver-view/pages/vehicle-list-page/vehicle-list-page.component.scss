@@ -102,3 +102,12 @@ cursor: pointer;
   background-repeat: no-repeat;
   background-size: contain;
 }
+
+.vehicleTableVechicleImage{
+  max-width: 3em;
+  border-radius: 0.2em;
+  max-height: 2.5em;
+  overflow: hidden;
+  object-fit: scale-down;
+  margin: 0.1em;
+}
